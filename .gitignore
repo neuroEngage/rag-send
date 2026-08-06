@@ -29,15 +29,34 @@ ENV/
 # Environment variables
 .env
 
-# Data & Models (large files)
+# Data & Models (all datasets, models, caches, and embeddings)
 data/
 models/
+raw_data/
+processed_data/
 *.parquet
+*.snappy.parquet
 *.pkl
+*.pickle
 *.faiss
+*.csv
+*.tsv
+*.jsonl
+*.h5
+*.hdf5
+*.feather
+*.arrow
+*.db
+*.sqlite
+*.sqlite3
+*.bin
 *.tar
 *.gz
 *.zip
+*.7z
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
 
 # IDE / OS
 .vscode/
