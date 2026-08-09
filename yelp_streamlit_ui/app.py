@@ -269,29 +269,25 @@ st.sidebar.markdown("---")
 
 # Render Yelp Navbar Header
 if "Consumer" in app_mode:
-    st.markdown("""
-    <div class="yelp-navbar">
-        <div class="yelp-logo">
-            <span style="color: #FA4848;">yelp</span><span style="font-size: 1.3rem; color: #2D2E2F;">⚙️</span> 
-            <span style="font-size: 1.2rem; font-weight:600; color: #2D2E2F; margin-left: 6px;">Consumer Search Portal</span>
-        </div>
-        <div>
-            <span class="yelp-badge">Consumer RAG Engine</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="yelp-navbar">
+<div class="yelp-logo">
+<span style="color: #FA4848;">yelp</span><span style="font-size: 1.3rem; color: #2D2E2F;">⚙️</span> 
+<span style="font-size: 1.2rem; font-weight:600; color: #2D2E2F; margin-left: 6px;">Consumer Search Portal</span>
+</div>
+<div>
+<span class="yelp-badge">Consumer RAG Engine</span>
+</div>
+</div>""", unsafe_allow_html=True)
 else:
-    st.markdown("""
-    <div class="yelp-navbar">
-        <div class="yelp-logo">
-            <span style="color: #FA4848;">yelp</span><span style="font-size: 1.3rem; color: #0396BC;">💼</span> 
-            <span style="font-size: 1.2rem; font-weight:600; color: #2D2E2F; margin-left: 6px;">Business Intelligence Engine</span>
-        </div>
-        <div>
-            <span class="yelp-badge" style="background-color: #D9F6FD; color: #007692; border-color: rgba(3, 150, 188, 0.3);">Owner Intelligence</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("""<div class="yelp-navbar">
+<div class="yelp-logo">
+<span style="color: #FA4848;">yelp</span><span style="font-size: 1.3rem; color: #0396BC;">💼</span> 
+<span style="font-size: 1.2rem; font-weight:600; color: #2D2E2F; margin-left: 6px;">Business Intelligence Engine</span>
+</div>
+<div>
+<span class="yelp-badge" style="background-color: #D9F6FD; color: #007692; border-color: rgba(3, 150, 188, 0.3);">Owner Intelligence</span>
+</div>
+</div>""", unsafe_allow_html=True)
 
 if not retriever_ready:
     st.error(f"Error loading RAG Vector Engine: {retriever_error}")
@@ -329,7 +325,7 @@ if "Consumer" in app_mode:
 
     for msg in st.session_state.customer_messages:
         with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
+            st.markdown(msg["content"], unsafe_allow_html=True)
 
     user_input = st.chat_input("Ask Yelp AI Assistant for business recommendations...")
 
@@ -360,19 +356,7 @@ if "Consumer" in app_mode:
                 st.markdown(reply)
                 st.session_state.customer_messages.append({"role": "assistant", "content": reply})
             else:
-                # ── AI ANSWER BLOCK ──────────────────────────────────────────
-                st.markdown("""
-<div style="background:linear-gradient(135deg,#FA4848 0%,#D71616 100%); border-radius:14px; padding:20px 24px; margin-bottom:20px; box-shadow:0 4px 16px rgba(250,72,72,0.25);">
-    <div style="font-family:'Poppins',sans-serif; font-size:0.8rem; font-weight:700; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">🤖 AI Business Insight</div>
-</div>
-""", unsafe_allow_html=True)
-                st.markdown(ai_answer)
-                st.markdown("---")
-
-                # ── SOURCE CARDS ────────────────────────────────────────────
-                st.markdown(f"### 📄 Evidence — Top Results for **\"{user_input}\"**")
-                full_reply = f"**AI Answer:** {ai_answer}\n\n"
-
+                cards_html = []
                 for idx, res in enumerate(results, 1):
                     doc_type = res["document_type"].upper()
                     biz_name = res.get("business_name", "Unknown Business")
@@ -389,26 +373,35 @@ if "Consumer" in app_mode:
                     sentiment_color = "#029E6A" if sentiment == "positive" else "#D71616" if sentiment == "negative" else "#6B6D6F"
                     sentiment_bg = "#E8F8F2" if sentiment == "positive" else "#FFECEC" if sentiment == "negative" else "#F0F0F0"
 
-                    card_md = f"""
-<div style="background:#FFFFFF; border:1px solid #E3E3E3; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-    <div style="font-family:'Poppins',sans-serif; font-size:1.1rem; font-weight:700; color:#2D2E2F;">
-        <span style="color:#FA4848;">#{idx}</span> {biz_name} <span style="font-size:0.85rem; font-weight:400; color:#6B6D6F;">({city}, {state})</span>
-    </div>
-    <div style="margin-top:6px; margin-bottom:10px;">
-        <span style="color:#FA4848; font-size:1.0rem; font-weight:bold;">{stars_html}</span> 
-        <span style="font-weight:700; color:#2D2E2F; font-size:0.9rem; margin-left:4px;">{rating_val:.1f}</span>
-        <span class="yelp-pill" style="margin-left:8px;">{category}</span>
-        {f'<span class="yelp-pill" style="background:{sentiment_bg}; color:{sentiment_color};">{sentiment.capitalize()}</span>' if sentiment else ''}
-        <span class="yelp-pill" style="background:#D9F6FD; color:#007692;">sim={score:.3f}</span>
-    </div>
-    <div style="font-size:0.9rem; color:#2D2E2F; line-height:1.5; background:#F7F7F7; padding:12px; border-radius:8px; border-left:4px solid #0396BC;">
-        "{excerpt[:300]}..."
-    </div>
+                    card_md = f"""<div style="background:#FFFFFF; border:1px solid #E3E3E3; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
+<div style="font-family:'Poppins',sans-serif; font-size:1.1rem; font-weight:700; color:#2D2E2F;">
+<span style="color:#FA4848;">#{idx}</span> {biz_name} <span style="font-size:0.85rem; font-weight:400; color:#6B6D6F;">({city}, {state})</span>
 </div>
-"""
-                    st.markdown(card_md, unsafe_allow_html=True)
-                    full_reply += f"\n#{idx} {biz_name} ({city}, {state}) — {rating_val}★ | {sentiment}\n"
+<div style="margin-top:6px; margin-bottom:10px;">
+<span style="color:#FA4848; font-size:1.0rem; font-weight:bold;">{stars_html}</span> 
+<span style="font-weight:700; color:#2D2E2F; font-size:0.9rem; margin-left:4px;">{rating_val:.1f}</span>
+<span class="yelp-pill" style="margin-left:8px;">{category}</span>
+{f'<span class="yelp-pill" style="background:{sentiment_bg}; color:{sentiment_color};">{sentiment.capitalize()}</span>' if sentiment else ''}
+<span class="yelp-pill" style="background:#D9F6FD; color:#007692;">sim={score:.3f}</span>
+</div>
+<div style="font-size:0.9rem; color:#2D2E2F; line-height:1.5; background:#F7F7F7; padding:12px; border-radius:8px; border-left:4px solid #0396BC;">
+"{excerpt[:300]}..."
+</div>
+</div>"""
+                    cards_html.append(card_md)
 
+                full_reply = f"""<div style="background:linear-gradient(135deg,#FA4848 0%,#D71616 100%); border-radius:14px; padding:20px 24px; margin-bottom:20px; box-shadow:0 4px 16px rgba(250,72,72,0.25);">
+<div style="font-family:'Poppins',sans-serif; font-size:0.8rem; font-weight:700; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">🤖 AI Business Insight</div>
+</div>
+
+{ai_answer}
+
+---
+### 📄 Evidence — Top Results for **"{user_input}"**
+
+""" + "\n\n".join(cards_html)
+
+                st.markdown(full_reply, unsafe_allow_html=True)
                 st.session_state.customer_messages.append({"role": "assistant", "content": full_reply})
 
 
@@ -564,49 +557,45 @@ else:
     pos_pct = (pos_cnt / tot_revs * 100) if tot_revs > 0 else 0.0
     neg_pct = (neg_cnt / tot_revs * 100) if tot_revs > 0 else 0.0
 
-    hero_html = f"""
-<div style="background:#FFFFFF; border:1px solid #E3E3E3; border-radius:16px; padding:28px; margin-bottom:24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-    <div style="display:flex; justify-between; align-items:flex-start; flex-wrap:wrap;">
-        <div>
-            <h1 style="font-family:'Poppins',sans-serif; font-size:2.4rem; margin:0; color:#2D2E2F;">{selected_biz_name}</h1>
-            <div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
-                <span style="color:#FA4848; font-size:1.3rem;">{render_stars(avg_stars)}</span>
-                <span style="font-family:'Poppins',sans-serif; font-weight:700; font-size:1.1rem; color:#2D2E2F;">{avg_stars:.2f}</span>
-                <span style="color:#6B6D6F; font-size:0.95rem;">({tot_revs:,} customer reviews)</span>
-            </div>
-            <div style="margin-top:12px;">
-                <span class="yelp-pill" style="background:#F0F0F0; font-weight:700;">$$</span>
-                <span class="yelp-pill" style="background:#F0F0F0; font-weight:600;">{category}</span>
-                <span class="yelp-pill" style="background:#E8F8F2; color:#029E6A; font-weight:700;">{'Open Now' if is_open else 'Closed'}</span>
-                <span style="color:#6B6D6F; font-size:0.9rem; margin-left:8px;">📍 {address}, {city_st}</span>
-            </div>
-        </div>
-    </div>
+    hero_html = f"""<div style="background:#FFFFFF; border:1px solid #E3E3E3; border-radius:16px; padding:28px; margin-bottom:24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap;">
+<div>
+<h1 style="font-family:'Poppins',sans-serif; font-size:2.4rem; margin:0; color:#2D2E2F;">{selected_biz_name}</h1>
+<div style="margin-top:8px; display:flex; align-items:center; gap:10px;">
+<span style="color:#FA4848; font-size:1.3rem;">{render_stars(avg_stars)}</span>
+<span style="font-family:'Poppins',sans-serif; font-weight:700; font-size:1.1rem; color:#2D2E2F;">{avg_stars:.2f}</span>
+<span style="color:#6B6D6F; font-size:0.95rem;">({tot_revs:,} customer reviews)</span>
 </div>
-"""
+<div style="margin-top:12px;">
+<span class="yelp-pill" style="background:#F0F0F0; font-weight:700;">$$</span>
+<span class="yelp-pill" style="background:#F0F0F0; font-weight:600;">{category}</span>
+<span class="yelp-pill" style="background:#E8F8F2; color:#029E6A; font-weight:700;">{'Open Now' if is_open else 'Closed'}</span>
+<span style="color:#6B6D6F; font-size:0.9rem; margin-left:8px;">📍 {address}, {city_st}</span>
+</div>
+</div>
+</div>
+</div>"""
     st.markdown(hero_html, unsafe_allow_html=True)
 
     # EXECUTIVE KPI CARDS
-    kpi_html = f"""
-<div class="kpi-container">
-    <div class="kpi-card-white">
-        <div class="kpi-number" style="color: #2D2E2F;">{avg_stars:.2f} <span style="color:#FA4848; font-size:1.6rem;">★</span></div>
-        <div class="kpi-label">Average Rating</div>
-    </div>
-    <div class="kpi-card-white">
-        <div class="kpi-number" style="color: #0396BC;">{tot_revs:,}</div>
-        <div class="kpi-label">Total Customer Reviews</div>
-    </div>
-    <div class="kpi-card-white">
-        <div class="kpi-number" style="color: #029E6A;">{pos_pct:.1f}%</div>
-        <div class="kpi-label">Positive Sentiment ({pos_cnt:,})</div>
-    </div>
-    <div class="kpi-card-white">
-        <div class="kpi-number" style="color: #D71616;">{neg_pct:.1f}%</div>
-        <div class="kpi-label">Critical Complaints ({neg_cnt:,})</div>
-    </div>
+    kpi_html = f"""<div class="kpi-container">
+<div class="kpi-card-white">
+<div class="kpi-number" style="color: #2D2E2F;">{avg_stars:.2f} <span style="color:#FA4848; font-size:1.6rem;">★</span></div>
+<div class="kpi-label">Average Rating</div>
 </div>
-"""
+<div class="kpi-card-white">
+<div class="kpi-number" style="color: #0396BC;">{tot_revs:,}</div>
+<div class="kpi-label">Total Customer Reviews</div>
+</div>
+<div class="kpi-card-white">
+<div class="kpi-number" style="color: #029E6A;">{pos_pct:.1f}%</div>
+<div class="kpi-label">Positive Sentiment ({pos_cnt:,})</div>
+</div>
+<div class="kpi-card-white">
+<div class="kpi-number" style="color: #D71616;">{neg_pct:.1f}%</div>
+<div class="kpi-label">Critical Complaints ({neg_cnt:,})</div>
+</div>
+</div>"""
     st.markdown(kpi_html, unsafe_allow_html=True)
 
     # 66% / 33% YELP BUSINESS PAGE GRID LAYOUT
@@ -625,56 +614,48 @@ else:
             st.markdown("<br>", unsafe_allow_html=True)
 
             # SECTION 1: POSITIVE PRAISE REVIEWS (FIRST)
-            st.markdown("""
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                <span style="font-size:1.3rem;">🌟</span>
-                <h3 style="margin:0; color:#029E6A; font-family:'Poppins',sans-serif;">Positive Praise Reviews (4 & 5 Stars)</h3>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+<span style="font-size:1.3rem;">🌟</span>
+<h3 style="margin:0; color:#029E6A; font-family:'Poppins',sans-serif;">Positive Praise Reviews (4 & 5 Stars)</h3>
+</div>""", unsafe_allow_html=True)
 
             if pos_reviews.empty:
                 st.info("No positive reviews recorded for this business location.")
             else:
                 for idx, row in pos_reviews.iterrows():
-                    st.markdown(f"""
-                    <div class="review-card-pos">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <span style="color:#FA4848; font-weight:bold;">{render_stars(row['stars'])}</span>
-                                <span style="font-weight:700; color:#2D2E2F; font-size:0.95rem; margin-left:6px;">{row['stars']:.1f} Stars</span>
-                            </div>
-                            <span class="review-date">🗓️ {row['review_date']}</span>
-                        </div>
-                        <div class="review-text">{row['document_text']}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"""<div class="review-card-pos">
+<div style="display:flex; justify-content:space-between; align-items:center;">
+<div>
+<span style="color:#FA4848; font-weight:bold;">{render_stars(row['stars'])}</span>
+<span style="font-weight:700; color:#2D2E2F; font-size:0.95rem; margin-left:6px;">{row['stars']:.1f} Stars</span>
+</div>
+<span class="review-date">🗓️ {row['review_date']}</span>
+</div>
+<div class="review-text">{row['document_text']}</div>
+</div>""", unsafe_allow_html=True)
 
             st.markdown("<br><hr style='border-color:#F0F0F0;'><br>", unsafe_allow_html=True)
 
             # SECTION 2: CRITICAL COMPLAINTS REVIEWS (SECOND)
-            st.markdown("""
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
-                <span style="font-size:1.3rem;">🚨</span>
-                <h3 style="margin:0; color:#D71616; font-family:'Poppins',sans-serif;">Critical Customer Complaints (1 & 2 Stars)</h3>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("""<div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+<span style="font-size:1.3rem;">🚨</span>
+<h3 style="margin:0; color:#D71616; font-family:'Poppins',sans-serif;">Critical Customer Complaints (1 & 2 Stars)</h3>
+</div>""", unsafe_allow_html=True)
 
             if neg_reviews.empty:
                 st.success("🎉 No critical negative complaints recorded!")
             else:
                 for idx, row in neg_reviews.iterrows():
-                    st.markdown(f"""
-                    <div class="review-card-neg">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                                <span style="color:#FA4848; font-weight:bold;">{render_stars(row['stars'])}</span>
-                                <span style="font-weight:700; color:#D71616; font-size:0.95rem; margin-left:6px;">{row['stars']:.1f} Stars</span>
-                            </div>
-                            <span class="review-date">🗓️ {row['review_date']}</span>
-                        </div>
-                        <div class="review-text">{row['document_text']}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"""<div class="review-card-neg">
+<div style="display:flex; justify-content:space-between; align-items:center;">
+<div>
+<span style="color:#FA4848; font-weight:bold;">{render_stars(row['stars'])}</span>
+<span style="font-weight:700; color:#D71616; font-size:0.95rem; margin-left:6px;">{row['stars']:.1f} Stars</span>
+</div>
+<span class="review-date">🗓️ {row['review_date']}</span>
+</div>
+<div class="review-text">{row['document_text']}</div>
+</div>""", unsafe_allow_html=True)
 
         with tab_archive:
             st.markdown(f"### Full SQL Feedback Log: {selected_biz_name} ({city_st})")
@@ -702,16 +683,14 @@ else:
 
     # RIGHT COLUMN (33% STICKY SIDEBAR): AI OWNER COPILOT CHATBOT
     with col_sidebar:
-        st.markdown(f"""
-        <div class="sidebar-widget">
-            <h3 style="margin:0; font-family:'Poppins',sans-serif; color:#2D2E2F; font-size:1.2rem; display:flex; align-items:center; gap:8px;">
-                <span style="color:#FA4848;">🤖</span> AI Business Copilot
-            </h3>
-            <p style="font-size:0.85rem; color:#6B6D6F; margin-top:4px; margin-bottom:12px;">
-                Tuned on {tot_revs:,} reviews for <strong>{selected_biz_name} ({city_st})</strong>
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div class="sidebar-widget">
+<h3 style="margin:0; font-family:'Poppins',sans-serif; color:#2D2E2F; font-size:1.2rem; display:flex; align-items:center; gap:8px;">
+<span style="color:#FA4848;">🤖</span> AI Business Copilot
+</h3>
+<p style="font-size:0.85rem; color:#6B6D6F; margin-top:4px; margin-bottom:12px;">
+Tuned on {tot_revs:,} reviews for <strong>{selected_biz_name} ({city_st})</strong>
+</p>
+</div>""", unsafe_allow_html=True)
 
         copilot_key = f"owner_copilot_{selected_biz_id if selected_biz_id else selected_biz_name}"
         if copilot_key not in st.session_state:
@@ -724,7 +703,7 @@ else:
 
         for msg in st.session_state[copilot_key]:
             with st.chat_message(msg["role"]):
-                st.markdown(msg["content"])
+                st.markdown(msg["content"], unsafe_allow_html=True)
 
         owner_prompt = st.chat_input(f"Ask AI Copilot about {selected_biz_name}...")
 
