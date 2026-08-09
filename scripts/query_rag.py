@@ -50,6 +50,7 @@ class YelpRAGRetriever:
         city=None,
         min_stars=None,
         sentiment=None,
+        business_id=None,
         top_k=5
     ):
         """
@@ -87,13 +88,15 @@ class YelpRAGRetriever:
 
         # 2. Search Review Index
         if (doc_type in ["all", "review"]) and self.rev_index:
-            scores, indices = self.rev_index.search(query_vec, top_k * 3)
+            scores, indices = self.rev_index.search(query_vec, top_k * 10)
             for score, idx in zip(scores[0], indices[0]):
                 if idx < 0 or idx >= len(self.rev_meta):
                     continue
                 meta = self.rev_meta[idx]
 
                 # Apply metadata filters
+                if business_id and meta.get("business_id") != business_id:
+                    continue
                 if city and meta.get("city", "").lower() != city.lower():
                     continue
                 if min_stars and meta.get("stars", 0) < min_stars:
@@ -105,12 +108,14 @@ class YelpRAGRetriever:
                     "score": float(score),
                     "document_id": meta.get("document_id"),
                     "document_type": "review",
+                    "business_id": meta.get("business_id"),
                     "business_name": meta.get("business_name"),
                     "city": meta.get("city"),
                     "state": meta.get("state"),
                     "primary_category": meta.get("primary_category"),
                     "stars": meta.get("stars"),
                     "sentiment": meta.get("sentiment"),
+                    "review_date": meta.get("review_date"),
                     "document_text": meta.get("document_text")
                 })
 

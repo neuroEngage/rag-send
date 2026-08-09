@@ -56,7 +56,7 @@ def answer_question(
         city:        Optional city filter (e.g. "Philadelphia").
         min_stars:   Optional minimum star rating filter.
         sentiment:   Optional sentiment filter ("positive" / "negative").
-        business_id: Optional business_id to scope retrieval to one business.
+        business_id: Scope retrieval to a single business (critical for Owner Copilot).
         top_k:       Number of documents to retrieve (default: 5).
         llm_model:   OpenAI model to use (default: "gpt-4o-mini").
 
@@ -69,22 +69,16 @@ def answer_question(
     """
     retriever = _get_retriever()
 
-    # 1. Retrieve
+    # 1. Retrieve — pass business_id so FAISS is scoped to the right business
     results = retriever.search(
         query_text=question,
         doc_type=doc_type,
         city=city,
         min_stars=min_stars,
         sentiment=sentiment,
+        business_id=business_id,
         top_k=top_k,
     )
-
-    # Optional: filter to a specific business after retrieval
-    if business_id and results:
-        filtered = [r for r in results if r.get("document_id", "").startswith(f"doc_rev_{business_id}") or
-                    r.get("document_id", "").startswith(f"doc_biz_{business_id}")]
-        if filtered:
-            results = filtered
 
     # 2. Build context
     context = build_context(results)
@@ -107,19 +101,19 @@ if __name__ == "__main__":
         "What do customers say about the food quality and service?"
 
     print("\n" + "=" * 70)
-    print(f"  Yelp RAG Pipeline — Terminal Test")
+    print("  Yelp RAG Pipeline -- Terminal Test")
     print("=" * 70)
     print(f"  QUESTION: {test_question}")
     print("=" * 70)
 
     output = answer_question(test_question, top_k=5)
 
-    print("\n🤖 AI ANSWER")
-    print("─" * 70)
+    print("\n[AI ANSWER]")
+    print("-" * 70)
     print(output["answer"])
 
-    print("\n📄 SOURCES")
-    print("─" * 70)
+    print("\n[SOURCES]")
+    print("-" * 70)
     for i, src in enumerate(output["sources"], 1):
         biz = src.get("business_name", "Unknown")
         city = src.get("city", "")
@@ -127,4 +121,4 @@ if __name__ == "__main__":
         sentiment = src.get("sentiment", "")
         doc_type = src.get("document_type", "").upper()
         score = src.get("score", 0.0)
-        print(f"  [{i}] {doc_type} | {biz} ({city}) | {stars}★ | {sentiment} | sim={score:.4f}")
+        print(f"  [{i}] {doc_type} | {biz} ({city}) | {stars} stars | {sentiment} | sim={score:.4f}")

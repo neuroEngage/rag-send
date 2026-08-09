@@ -734,18 +734,13 @@ else:
                 st.markdown(owner_prompt)
 
             with st.spinner(f"🤖 Retrieving reviews & generating AI insight for {selected_biz_name}..."):
-                # Build a richer question that includes business context
-                enriched_question = (
-                    f"{owner_prompt} "
-                    f"[Business: {selected_biz_name}, {city_st}, "
-                    f"Avg Rating: {avg_stars:.1f}, "
-                    f"Total Reviews: {tot_revs}, "
-                    f"Positive: {pos_pct:.0f}%, Negative: {neg_pct:.0f}%]"
-                )
-
+                # Use the raw question as the semantic query — business scoping
+                # is handled by the business_id filter in the retriever, NOT by
+                # stuffing the business name into the embedding query.
                 rag_output = answer_question(
-                    question=enriched_question,
+                    question=owner_prompt,
                     doc_type="review",
+                    business_id=selected_biz_id,   # ← CRITICAL: scope to this business
                     top_k=6,
                 )
                 ai_answer = rag_output["answer"]
