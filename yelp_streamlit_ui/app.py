@@ -20,13 +20,16 @@ from pathlib import Path
 import streamlit as st
 import duckdb
 import pandas as pd
+from dotenv import load_dotenv
 
 # Add parent project root to sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
+load_dotenv(dotenv_path=PROJECT_ROOT / ".env")
 
 import config
 from scripts.query_rag import YelpRAGRetriever
+from rag.rag_pipeline import answer_question
 
 # ==============================================================================
 # PAGE CONFIGURATION & STYLING (YELP COOKBOOK DESIGN SYSTEM)
@@ -335,19 +338,21 @@ if "Consumer" in app_mode:
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        with st.spinner("Searching Yelp database & vector index..."):
+        with st.spinner("🔍 Searching Yelp index & generating AI answer..."):
             search_query = user_input
             if len(st.session_state.customer_messages) > 2:
                 last_user_msgs = [m["content"] for m in st.session_state.customer_messages if m["role"] == "user"][-2:]
                 search_query = " ".join(last_user_msgs)
 
-            results = retriever.search(
-                query_text=search_query,
+            rag_output = answer_question(
+                question=search_query,
                 doc_type="all",
                 city=cust_city.strip() if cust_city.strip() else None,
                 min_stars=cust_min_stars if cust_min_stars > 1.0 else None,
-                top_k=cust_top_k
+                top_k=cust_top_k,
             )
+            ai_answer = rag_output["answer"]
+            results = rag_output["sources"]
 
         with st.chat_message("assistant"):
             if not results:
@@ -355,9 +360,18 @@ if "Consumer" in app_mode:
                 st.markdown(reply)
                 st.session_state.customer_messages.append({"role": "assistant", "content": reply})
             else:
-                reply_header = f"### Recommended Places for **\"{user_input}\"**\n\n"
-                st.markdown(reply_header)
-                full_reply = reply_header
+                # ── AI ANSWER BLOCK ──────────────────────────────────────────
+                st.markdown("""
+<div style="background:linear-gradient(135deg,#FA4848 0%,#D71616 100%); border-radius:14px; padding:20px 24px; margin-bottom:20px; box-shadow:0 4px 16px rgba(250,72,72,0.25);">
+    <div style="font-family:'Poppins',sans-serif; font-size:0.8rem; font-weight:700; color:rgba(255,255,255,0.8); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">🤖 AI Business Insight</div>
+</div>
+""", unsafe_allow_html=True)
+                st.markdown(ai_answer)
+                st.markdown("---")
+
+                # ── SOURCE CARDS ────────────────────────────────────────────
+                st.markdown(f"### 📄 Evidence — Top Results for **\"{user_input}\"**")
+                full_reply = f"**AI Answer:** {ai_answer}\n\n"
 
                 for idx, res in enumerate(results, 1):
                     doc_type = res["document_type"].upper()
@@ -369,26 +383,31 @@ if "Consumer" in app_mode:
                     rating_val = float(rating) if rating else 0.0
                     stars_html = render_stars(rating_val)
                     category = res.get("primary_category", "Restaurant")
+                    sentiment = res.get("sentiment", "")
                     excerpt = res["document_text"].replace("\n", " ")
+
+                    sentiment_color = "#029E6A" if sentiment == "positive" else "#D71616" if sentiment == "negative" else "#6B6D6F"
+                    sentiment_bg = "#E8F8F2" if sentiment == "positive" else "#FFECEC" if sentiment == "negative" else "#F0F0F0"
 
                     card_md = f"""
 <div style="background:#FFFFFF; border:1px solid #E3E3E3; border-radius:12px; padding:18px; margin-bottom:16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04);">
-    <div style="font-family:'Poppins',sans-serif; font-size:1.3rem; font-weight:700; color:#2D2E2F;">
-        #{idx} {biz_name} <span style="font-size:0.9rem; font-weight:400; color:#6B6D6F;">({city}, {state})</span>
+    <div style="font-family:'Poppins',sans-serif; font-size:1.1rem; font-weight:700; color:#2D2E2F;">
+        <span style="color:#FA4848;">#{idx}</span> {biz_name} <span style="font-size:0.85rem; font-weight:400; color:#6B6D6F;">({city}, {state})</span>
     </div>
     <div style="margin-top:6px; margin-bottom:10px;">
-        <span style="color:#FA4848; font-size:1.1rem; font-weight:bold;">{stars_html}</span> 
-        <span style="font-weight:700; color:#2D2E2F; font-size:0.95rem; margin-left:4px;">{rating_val:.1f}</span>
-        <span class="yelp-pill" style="margin-left:10px;">{category}</span>
-        <span class="yelp-pill" style="background:#D9F6FD; color:#007692;">Similarity: {score:.4f}</span>
+        <span style="color:#FA4848; font-size:1.0rem; font-weight:bold;">{stars_html}</span> 
+        <span style="font-weight:700; color:#2D2E2F; font-size:0.9rem; margin-left:4px;">{rating_val:.1f}</span>
+        <span class="yelp-pill" style="margin-left:8px;">{category}</span>
+        {f'<span class="yelp-pill" style="background:{sentiment_bg}; color:{sentiment_color};">{sentiment.capitalize()}</span>' if sentiment else ''}
+        <span class="yelp-pill" style="background:#D9F6FD; color:#007692;">sim={score:.3f}</span>
     </div>
-    <div style="font-size:0.92rem; color:#2D2E2F; line-height:1.5; background:#F7F7F7; padding:12px; border-radius:8px; border-left:4px solid #0396BC;">
-        "{excerpt[:320]}..."
+    <div style="font-size:0.9rem; color:#2D2E2F; line-height:1.5; background:#F7F7F7; padding:12px; border-radius:8px; border-left:4px solid #0396BC;">
+        "{excerpt[:300]}..."
     </div>
 </div>
 """
                     st.markdown(card_md, unsafe_allow_html=True)
-                    full_reply += f"\n#{idx} {biz_name} ({city}, {state}) - Rating: {rating_val} stars\n"
+                    full_reply += f"\n#{idx} {biz_name} ({city}, {state}) — {rating_val}★ | {sentiment}\n"
 
                 st.session_state.customer_messages.append({"role": "assistant", "content": full_reply})
 
@@ -714,85 +733,64 @@ else:
             with st.chat_message("user"):
                 st.markdown(owner_prompt)
 
-            with st.spinner(f"Analyzing reviews for {selected_biz_name}..."):
-                prompt_lower = owner_prompt.lower()
+            with st.spinner(f"🤖 Retrieving reviews & generating AI insight for {selected_biz_name}..."):
+                # Build a richer question that includes business context
+                enriched_question = (
+                    f"{owner_prompt} "
+                    f"[Business: {selected_biz_name}, {city_st}, "
+                    f"Avg Rating: {avg_stars:.1f}, "
+                    f"Total Reviews: {tot_revs}, "
+                    f"Positive: {pos_pct:.0f}%, Negative: {neg_pct:.0f}%]"
+                )
 
-                search_sentiment = None
-                if any(w in prompt_lower for w in ["complaint", "bad", "issue", "problem", "disappointed", "negative", "worst", "slow", "wait"]):
-                    search_sentiment = "negative"
-                elif any(w in prompt_lower for w in ["love", "best", "great", "praise", "popular", "favourite", "favorite", "positive", "good"]):
-                    search_sentiment = "positive"
+                rag_output = answer_question(
+                    question=enriched_question,
+                    doc_type="review",
+                    top_k=6,
+                )
+                ai_answer = rag_output["answer"]
+                sources = rag_output["sources"]
 
+                # Also pull a few DuckDB reviews for display
                 if selected_biz_id:
-                    query_conds = ["business_id = ?"]
-                    params = [selected_biz_id]
+                    biz_reviews_df = con.execute(f"""
+                        SELECT stars, sentiment, review_date, document_text
+                        FROM read_parquet('{gold_rev_glob}')
+                        WHERE business_id = ?
+                        ORDER BY review_date DESC
+                        LIMIT 3
+                    """, [selected_biz_id]).df()
                 else:
-                    query_conds = ["business_name = ?"]
-                    params = [selected_biz_name]
-
-                if search_sentiment:
-                    query_conds.append("sentiment = ?")
-                    params.append(search_sentiment)
-
-                where_clause = " AND ".join(query_conds)
-
-                biz_reviews_df = con.execute(f"""
-                    SELECT stars, sentiment, review_date, document_text
-                    FROM read_parquet('{gold_rev_glob}')
-                    WHERE {where_clause}
-                    ORDER BY review_date DESC
-                    LIMIT 5
-                """, params).df()
+                    biz_reviews_df = con.execute(f"""
+                        SELECT stars, sentiment, review_date, document_text
+                        FROM read_parquet('{gold_rev_glob}')
+                        WHERE business_name = ?
+                        ORDER BY review_date DESC
+                        LIMIT 3
+                    """, [selected_biz_name]).df()
 
             with st.chat_message("assistant"):
-                summary_of_question = f"You asked about: **\"{owner_prompt}\"** for **{selected_biz_name} ({city_st})**."
-                if search_sentiment == "negative":
-                    question_context = "identifying top customer complaints and key areas needing operational improvement."
-                elif search_sentiment == "positive":
-                    question_context = "highlighting customer praise, popular menu items, and business strengths."
-                else:
-                    question_context = "analyzing overall customer sentiment across recent review feedback."
+                # ── AI GENERATED INSIGHT ────────────────────────────────────
+                copilot_reply = f"""### 🤖 AI Business Insight
 
-                copilot_reply = f"""### 📌 Question Summary
-{summary_of_question} This query focuses on {question_context}
+{ai_answer}
 
 ---
-### 🔍 Relevant Customer Review Evidence
+### 🔍 Retrieved Review Evidence
 """
-                if not biz_reviews_df.empty:
-                    for idx, row in biz_reviews_df.head(3).iterrows():
-                        stars = float(row['stars'])
-                        s_label = str(row['sentiment']).upper()
-                        txt = str(row['document_text']).replace("\n", " ")
+                if sources:
+                    for i, src in enumerate(sources[:4], 1):
+                        stars_val = src.get("stars") or src.get("business_rating", 0)
+                        stars_val = float(stars_val) if stars_val else 0.0
+                        s_label = str(src.get("sentiment", "")).upper()
+                        date_val = src.get("review_date", src.get("date", "N/A"))
+                        txt = str(src.get("document_text", "")).replace("\n", " ")
                         copilot_reply += f"""
-* **Excerpt #{idx+1}** ({render_stars(stars)} `{stars:.1f} ⭐` | `{s_label}` | `{row['review_date']}`):
-  > *"{txt[:260]}..."*
+* **Review #{i}** ({render_stars(stars_val)} `{stars_val:.1f}⭐` | `{s_label}` | `{date_val}`):
+  > *"{txt[:240]}..."*
 """
                 else:
-                    copilot_reply += "*No specific reviews matching this criteria were found for this business.*"
-
-                copilot_reply += """
----
-### 💡 Key Recommendations (Summary)
-"""
-                if search_sentiment == "negative":
-                    copilot_reply += f"""
-1. **Reduce Peak Wait Times:** Address table turnover and line management during peak dining hours.
-2. **Kitchen & Food Consistency:** Standardize preparation so dish quality matches regular expectations.
-3. **Proactive Table Management:** Ensure floor staff check on guests within 3 minutes of serving to catch any dish issues immediately.
-"""
-                elif search_sentiment == "positive":
-                    copilot_reply += f"""
-1. **Promote Star Specialty Items:** Highlight high-scoring menu items in marketing and social media campaigns.
-2. **Customer Loyalty Engagement:** Respond to top 5-star reviewers to foster long-term customer relationships.
-3. **Reward Outstanding Staff:** Recognize bartenders and floor staff praised in customer reviews.
-"""
-                else:
-                    copilot_reply += f"""
-1. **Operational Focus:** Maintain high service standards while monitoring weekly sentiment trends.
-2. **Menu Optimization:** Continue featuring customer-favorite dishes while addressing minor consistency feedback.
-3. **Staff Training:** Conduct regular service briefings to keep front-of-house velocity aligned with kitchen workflow.
-"""
+                    copilot_reply += "\n*No relevant reviews were retrieved for this query.*"
 
                 st.markdown(copilot_reply)
                 st.session_state[copilot_key].append({"role": "assistant", "content": copilot_reply})
