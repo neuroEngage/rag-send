@@ -2,7 +2,7 @@
 
 > **Module Title**: Document Chunking & Text Preparation
 
-> **Source Notebook**: [02_chunk_documents.ipynb](file:///c:/Users/shank/Downloads/yelp_project/notebooks/02_chunk_documents.ipynb)
+> **Source Notebook**: [02_chunk_documents.ipynb](../notebooks/02_chunk_documents.ipynb)
 
 ---
 

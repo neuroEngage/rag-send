@@ -5,11 +5,16 @@ import faiss
 import numpy as np
 from pathlib import Path
 
-BASE_DIR = Path("c:/Users/shank/Downloads/yelp_project")
-gold_biz = str(BASE_DIR / "data" / "02_gold" / "business_documents" / "*.parquet")
-gold_rev = str(BASE_DIR / "data" / "02_gold" / "review_documents" / "*.parquet")
-meta_biz_path = BASE_DIR / "models" / "faiss_index" / "business_meta.pkl"
-index_biz_path = BASE_DIR / "models" / "faiss_index" / "business_index.faiss"
+# Add project root to sys.path
+BASE_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(BASE_DIR))
+
+import config
+
+gold_biz = str(config.GOLD_BUSINESS_PATH / "*.parquet").replace("\\", "/")
+gold_rev = str(config.GOLD_REVIEW_PATH / "*.parquet").replace("\\", "/")
+meta_biz_path = config.BUSINESS_META_PATH
+index_biz_path = config.BUSINESS_INDEX_PATH
 
 con = duckdb.connect()
 

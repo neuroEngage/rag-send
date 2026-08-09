@@ -2,7 +2,7 @@
 
 > **Module Title**: Read & Inspect Gold Layer Documents
 
-> **Source Notebook**: [01_read_gold_documents.ipynb](file:///c:/Users/shank/Downloads/yelp_project/notebooks/01_read_gold_documents.ipynb)
+> **Source Notebook**: [01_read_gold_documents.ipynb](../notebooks/01_read_gold_documents.ipynb)
 
 ---
 

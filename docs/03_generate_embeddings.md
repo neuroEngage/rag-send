@@ -2,7 +2,7 @@
 
 > **Module Title**: Generate Dense Vector Embeddings
 
-> **Source Notebook**: [03_generate_embeddings.ipynb](file:///c:/Users/shank/Downloads/yelp_project/notebooks/03_generate_embeddings.ipynb)
+> **Source Notebook**: [03_generate_embeddings.ipynb](../notebooks/03_generate_embeddings.ipynb)
 
 ---
 

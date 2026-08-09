@@ -2,7 +2,7 @@
 
 > **Module Title**: Build FAISS Vector Store & Semantic RAG Search
 
-> **Source Notebook**: [04_build_and_query_rag.ipynb](file:///c:/Users/shank/Downloads/yelp_project/notebooks/04_build_and_query_rag.ipynb)
+> **Source Notebook**: [04_build_and_query_rag.ipynb](../notebooks/04_build_and_query_rag.ipynb)
 
 ---
 
