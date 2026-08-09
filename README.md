@@ -47,9 +47,9 @@ yelp_project/
 │   └── 04_build_and_query_rag.ipynb
 ├── scripts/
 │   ├── prepare_data.py            # Gold Layer ETL script (DuckDB Streaming)
-│   ├── build_rag.py               # FAISS index construction script
-│   ├── query_rag.py               # Hybrid Retriever Engine (SQL + FAISS)
-│   └── glue_gold_rag_etl.py       # AWS Glue PySpark Cloud ETL script
+│   ├── build_rag.py               # Standard FAISS index construction script
+│   ├── build_rag_fast.py          # High-performance parallel CPU FAISS builder (INT8 + Multi-Process)
+│   └── query_rag.py               # Hybrid Retriever Engine (SQL + FAISS)
 ├── app.py                         # Streamlit Dual-Portal Web App
 ├── config.py                      # Centralized configuration & paths
 ├── requirements.txt               # Dependencies
@@ -71,10 +71,13 @@ yelp_project/
 python scripts/prepare_data.py
 ```
 
-### 3. Build FAISS Vector Index
+### 3. Build FAISS Vector Index (High-Performance Parallel CPU)
 ```powershell
-# Build FAISS vector index (e.g., 50,000 documents)
-python scripts/build_rag.py 50000
+# High-performance parallel CPU run for 50,000 documents (~4-5 mins)
+python scripts/build_rag_fast.py 50000
+
+# Full dataset run for 100% of all 7.14M documents (~1.5-2 hours)
+python scripts/build_rag_fast.py 0
 ```
 
 ### 4. Launch Streamlit Application
