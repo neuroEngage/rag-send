@@ -616,7 +616,6 @@ rag_output = answer_question(
 | [scripts/build_rag.py](file:///c:/Users/shank/Downloads/yelp_project/scripts/build_rag.py) | 143 | Standard single-process FAISS builder. Encodes documents, builds `IndexFlatIP`, persists `.faiss` + `.pkl`. |
 | [scripts/build_rag_fast.py](file:///c:/Users/shank/Downloads/yelp_project/scripts/build_rag_fast.py) | 224 | High-performance multi-process FAISS builder. Splits work across CPU cores, builds sub-indices, merges into master index. |
 | [scripts/query_rag.py](file:///c:/Users/shank/Downloads/yelp_project/scripts/query_rag.py) | 165 | `YelpRAGRetriever` class. Loads FAISS indices + metadata, encodes queries, performs vector similarity search with metadata filtering. |
-| [scripts/utils.py](file:///c:/Users/shank/Downloads/yelp_project/scripts/utils.py) | 4 | Placeholder for future helper utilities. |
 
 ### RAG Package
 

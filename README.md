@@ -67,8 +67,7 @@ yelp_project/
 │   ├── prepare_data.py            # Gold Layer ETL (DuckDB Direct Streaming)
 │   ├── build_rag.py               # Standard single-process FAISS builder
 │   ├── build_rag_fast.py          # High-performance parallel CPU FAISS builder (INT8 + Multi-Process)
-│   ├── query_rag.py               # Hybrid Retriever Engine (SQL + FAISS)
-│   └── utils.py                   # Utilities
+│   └── query_rag.py               # Hybrid Retriever Engine (SQL + FAISS)
 ├── docs/                          # Execution Guides & Notebook Documentation
 │   ├── README.md                  # Documentation Index
 │   ├── 01_read_gold_documents.md  # Gold dataset inspection docs
