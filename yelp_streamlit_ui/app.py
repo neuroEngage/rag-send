@@ -240,7 +240,11 @@ st.markdown("""
 # Cache DuckDB Database Connection
 @st.cache_resource
 def get_duckdb_con():
-    return duckdb.connect()
+    c = duckdb.connect()
+    c.execute("PRAGMA max_memory='2GB'")
+    c.execute("PRAGMA threads=4")
+    c.execute("PRAGMA preserve_insertion_order=false")
+    return c
 
 # Cache RAG Vector Retriever
 @st.cache_resource
@@ -659,22 +663,26 @@ else:
 
         with tab_archive:
             st.markdown(f"### Full SQL Feedback Log: {selected_biz_name} ({city_st})")
-            if selected_biz_id:
-                df_full_log = con.execute(f"""
-                    SELECT review_id, stars, sentiment, review_date, document_text
-                    FROM read_parquet('{gold_rev_glob}')
-                    WHERE business_id = ?
-                    ORDER BY review_date DESC
-                    LIMIT 100
-                """, [selected_biz_id]).df()
-            else:
-                df_full_log = con.execute(f"""
-                    SELECT review_id, stars, sentiment, review_date, document_text
-                    FROM read_parquet('{gold_rev_glob}')
-                    WHERE business_name = ?
-                    ORDER BY review_date DESC
-                    LIMIT 100
-                """, [selected_biz_name]).df()
+            @st.cache_data
+            def get_full_log(b_id, b_name):
+                if b_id:
+                    return con.execute(f"""
+                        SELECT review_id, stars, sentiment, review_date, document_text
+                        FROM read_parquet('{gold_rev_glob}')
+                        WHERE business_id = ?
+                        ORDER BY review_date DESC
+                        LIMIT 100
+                    """, [b_id]).df()
+                else:
+                    return con.execute(f"""
+                        SELECT review_id, stars, sentiment, review_date, document_text
+                        FROM read_parquet('{gold_rev_glob}')
+                        WHERE business_name = ?
+                        ORDER BY review_date DESC
+                        LIMIT 100
+                    """, [b_name]).df()
+
+            df_full_log = get_full_log(selected_biz_id, selected_biz_name)
 
             if not df_full_log.empty:
                 st.dataframe(df_full_log, use_container_width=True)
