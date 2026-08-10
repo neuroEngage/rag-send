@@ -713,11 +713,9 @@ Tuned on {tot_revs:,} reviews for <strong>{selected_biz_name} ({city_st})</stron
                 st.markdown(owner_prompt)
 
             with st.spinner(f"🤖 Retrieving reviews & generating AI insight for {selected_biz_name}..."):
-                # Use the raw question as the semantic query — business scoping
-                # is handled by the business_id filter in the retriever, NOT by
-                # stuffing the business name into the embedding query.
+                search_prompt = f"{selected_biz_name} {owner_prompt}" if selected_biz_name else owner_prompt
                 rag_output = answer_question(
-                    question=owner_prompt,
+                    question=search_prompt,
                     doc_type="review",
                     business_id=selected_biz_id,   # ← CRITICAL: scope to this business
                     top_k=6,

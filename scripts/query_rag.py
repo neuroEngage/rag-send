@@ -88,7 +88,8 @@ class YelpRAGRetriever:
 
         # 2. Search Review Index
         if (doc_type in ["all", "review"]) and self.rev_index:
-            scores, indices = self.rev_index.search(query_vec, top_k * 10)
+            fetch_limit = min(top_k * 500 if business_id else top_k * 10, self.rev_index.ntotal)
+            scores, indices = self.rev_index.search(query_vec, fetch_limit)
             for score, idx in zip(scores[0], indices[0]):
                 if idx < 0 or idx >= len(self.rev_meta):
                     continue
@@ -118,6 +119,33 @@ class YelpRAGRetriever:
                     "review_date": meta.get("review_date"),
                     "document_text": meta.get("document_text")
                 })
+
+            # Fallback for business_id: if FAISS top-K didn't find enough matches for this business
+            if business_id and len(results) < top_k:
+                existing_ids = {r["document_id"] for r in results}
+                for meta in self.rev_meta:
+                    if meta.get("business_id") == business_id and meta.get("document_id") not in existing_ids:
+                        # Apply additional filters if specified
+                        if min_stars and meta.get("stars", 0) < min_stars:
+                            continue
+                        if sentiment and meta.get("sentiment", "").lower() != sentiment.lower():
+                            continue
+                        results.append({
+                            "score": 0.500,
+                            "document_id": meta.get("document_id"),
+                            "document_type": "review",
+                            "business_id": meta.get("business_id"),
+                            "business_name": meta.get("business_name"),
+                            "city": meta.get("city"),
+                            "state": meta.get("state"),
+                            "primary_category": meta.get("primary_category"),
+                            "stars": meta.get("stars"),
+                            "sentiment": meta.get("sentiment"),
+                            "review_date": meta.get("review_date"),
+                            "document_text": meta.get("document_text")
+                        })
+                        if len(results) >= top_k:
+                            break
 
         # Sort combined results by similarity score descending
         results = sorted(results, key=lambda x: x["score"], reverse=True)[:top_k]
